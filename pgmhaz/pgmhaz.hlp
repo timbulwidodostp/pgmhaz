@@ -1,0 +1,213 @@
+.-
+help for ^pgmhaz^                                       (STB-39: sbe17)
+.-
+
+Discrete time (grouped duration data) proportional hazards models
+-----------------------------------------------------------------
+
+^pgmhaz^ covariates [^if^ exp] [^in^ range], ^i^d^(^idvar^)^
+     ^d^ead^(^deadvar^)^ ^s^eq^(^seqvar^)^  
+     [^lnv^ar0^(^#^)^ ^ef^orm ^le^vel^(^#^)^ ^nolog^ ^tr^ace ^nocons^]
+
+To reset problem-size limits, see help @matsize@
+
+
+Description
+-----------
+
+^pgmhaz^ estimates by ML two discrete time (grouped duration data)
+proportional hazards regression models, one of which incorporates a
+gamma mixture distribution to summarize unobserved individual
+heterogeneity (or "frailty"). Covariates may include regressor variables
+summarizing observed differences between persons (either fixed or
+time-varying), and variables summarizing the duration dependence of the
+hazard rate. With suitable definition of covariates, models with a fully
+non-parametric specification for duration dependence may be estimated;
+so too may parametric specifications. ^pgmhaz^ thus provides a useful
+complement to ^cox^ and ^st stcox^, ^weibull^ and ^st stweib^. 
+
+Two models are estimated by maximum likelihood methods:
+(1) the Prentice-Gloeckler (1978) model; and
+(2) the Prentice-Gloeckler (1978) model incorporating a gamma mixture 
+distribution to summarize unobserved individual heterogeneity, as proposed 
+by Meyer (1990). 
+
+Suppose there are individuals i = 1,...,N, who each enter a state
+(e.g. unemployment) at time 0.  Underlying spell durations are
+continuous but are only observed in intervals of unit length, e.g. a week
+or a month.  (Alternatively durations are intrinsically discrete.)
+Suppose that the recorded duration for each person i is the interval
+[(t_i)-1,t_i).  Persons are also recorded as either having left the state
+during the interval (contributing completed spell data), or as still
+remaining in the state (contributing right-censored spell data).  NB the
+number of intervals comprising a censored spell (spell length) is defined 
+here to include the last interval within which the person is observed.
+
+The hazard rates for Models 1 and Model 2 are the discrete time 
+counterparts of the hazards for underlying continuous time proportional 
+hazards models.  Specifically the discrete time hazard rates for 
+person i in each duration interval j = 1,...,t_i are:
+
+Model 1:	h_j(X_ij) = 1 - exp{-exp[X_ij'b + D(j)]}
+
+Model 2:	h_j(X_ij) = 1 - exp{-exp[X_ij'b + D(j) + log(e)]}
+
+where X_ij is a vector of covariates summarizing observed differences
+between persons, b is a vector of parameters to be estimated, and D(j) 
+is a function describing duration dependence in the hazard rate. 
+(The functional form for the baseline hazard function D(j) is chosen 
+by the user and specified by defining appropriate covariates.)  
+In Model 2, e is a Gamma distributed random variate with unit mean and 
+variance v = sigma^^2. 
+
+Define a censoring indicator c_i = 1 if person i's spell duration is 
+completed, and c_i = 0 if i's spell duration is censored.
+
+The log-likelihood function for Model 2 is:
+       
+ i=N	     
+ SUM log[(1-c_i).A_i + (c_i).B_i] , where
+ i=1
+
+            t_i	 
+ A_i = [1 + SUM {exp(I_ij + ln(v))}]^^(-1/v), and
+      	    j=1
+
+            (t_i)-1	                         
+ B_i = [1 +   SUM  {exp(I_ij + ln(v))} ]^^(-1/v) - A_i, if t_i > 1 and 
+              j=1                                
+
+     = 1 -  A_i, if t_i = 1.
+
+where I_ij = X_ij'b + D(j).
+
+Model 1's log-likelihood function is the limiting case as v --> 0.
+
+For suitably organized data, the log-likelihood function for Model 
+1 is the same as the log-likelihood for a generalized linear model
+of the binomial family with complementary log-log link: see Allison (1982) 
+or Jenkins (1995).  Model 1 is estimated using Stata's ^glm^ command.  
+(The corresponding logistic hazard model can be estimated with
+the ^logit^ command applied to the data organized in the same way.)
+Model 2 is estimated using Stata's ^ml deriv0^ command, with
+starting values for b taken from Model 1's estimates.
+Given the potential fragility of models incorporating unobserved
+heterogeneity, estimates for both models are reported.  
+
+
+Important note about data organization and mandatory variables
+--------------------------------------------------------------
+The data set must be organized before estimation so that, for each person, 
+there are as many data rows as there are duration intervals at risk of the 
+event occuring for each person. Given the definitions above, this means 
+t_i rows for each person i=1,...,N.  This data organisation is closely 
+related to that required for estimation of Cox regression models with 
+time-varying covariates. @expand@ is useful for putting the data in this 
+form: see [R] expand. Also see the 'data step' discussion in Jenkins (1995).
+
+^id(^idvar^)^ specifies the variable uniquely identifying each 
+	person, i.
+
+^seq(^seqvar^)^ is the variable uniquely identifying each time 
+	interval at risk for each person. For each i, the variable 
+	is the integer sequence 1,2,...,t_i. 
+
+^dead(^deadvar^)^ summarizes censoring status during each time
+	interval at risk.  If c_i = 0, deadvar = 0 for all 
+	j = 1,2,...,t_i; if c_i = 1, deadvar = 0 for all j = 
+	1,2,...,(t_i)-1, and deadvar = 1 for j = t_i.
+
+	
+Options
+-------
+
+^lnvar0(^#^)^ specifies the value for ln(v) which is used as the 
+	starting value in the maximization. The default is -1.
+	
+^eform^ reports the coefficients transformed to relative risk format,
+	i.e. exp(b) rather than b. Standard errors and confidence 
+	intervals are similarly transformed.  ^eform^ may be
+	specified at estimation or when redisplaying results.
+
+^level(^#^)^ specifies the significance level, in percent, for
+	confidence intervals of the parameters; see help @level@.
+
+^nolog^ suppresses the iteration logs.
+
+^trace^  reports the current value of the estimated parameters of
+	Model 2 at each iteration. See [R] maximize.
+
+^nocons^ specifies no intercept term in the index function X_ij*b.
+
+Warning: given the ordered sequence person-interval structure of the
+data, the ^if^ and ^in^ options should be used with great care.  
+See the STB article for elaboration of these caveats.
+
+
+Saved results
+-------------
+
+The global macros set by ^ml post^ plus	S_1 which contains the Model 2 
+log-likelihood at maximum, and S_2 which contains the Model 1 log-likelihood 
+at maximum.
+
+Access to estimated coefficients and s.e.s is available in the
+usual way: see [U] 20.5 Accessing coefficients, and [R] matrix get.
+
+Examples
+--------
+
+. ^* Model with "Weibull" baseline hazard^
+. ^gen ln_seq = ln(seqvar)^
+. ^pgmhaz ln_seq x1 x2, id(idvar) dead(deadvar) seq(seqvar)^  
+
+. ^pgmhaz^
+. ^pgmhaz, ef^
+
+. ^* Models with non-parametric baseline hazard; suppose 10 duration intervals^
+. ^for 1-10, ltype(numeric): ge byte d@@ = seqvar== @@^
+. ^* (i) if there are obs with deadvar==1 for every value of seqvar^
+. ^pgmhaz d1-d10 x1 x2, id(idvar) dead(deadvar) seq(seqvar) nocons^
+. ^* (ii) if there are no obs with deadvar==1 for seqvar==4^
+. ^pgmhaz d1-d10 x1 x2 if seqvar~=4 ,^
+. ^> id(idvar) dead(deadvar) seq(seqvar) nocons^
+ 
+
+Author
+------
+     Stephen P. Jenkins 
+     ESRC Research Centre on Micro-Social Change
+     University of Essex
+     Colchester CO4 3SQ
+     U.K.
+     email: stephenj@@essex.ac.uk
+
+Advice from Bill Sribney and Mark Stewart is gratefully acknowledged.
+
+
+References
+----------
+
+Allison, P. D. (1982). "Discrete-time methods for the analysis of event
+	histories" in S. Leinhardt (ed.) Sociological Methodology 1982,
+	Jossey-Bass Publishers, San Francisco, 61-97.
+
+Jenkins, S. P. (1995). Easy estimation methods for discrete-time
+	duration models. Oxford Bulletin of Economics and Statistics
+	57(1): 129-138.
+
+Meyer, B. D. (1990). Unemployment insurance and unemployment spells.
+	Econometrica 58(4): 757-782.
+
+Prentice, R. and L. Gloeckler. (1978). Regression analysis of grouped
+	survival data with application to breast cancer data.
+	Biometrics 34: 57-67.
+
+
+Also see
+--------
+
+   STB: STB-39 sbe17
+Manual: [R] cox, [R] st stcox, [R] weibull, [R] st stweib, [R] glm, 
+	[R] logit, [R] ml, [R] expand.
+Online: help for @cox@, @st stcox@, @weibull@, @glm@, @logit@, @expand@
