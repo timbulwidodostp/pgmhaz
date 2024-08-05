@@ -1,5 +1,14 @@
-d 'DEA': Data envelopment analysis
+d 'pgmhaz': Discrete time (grouped duration data) proportional hazards models Use pgmhaz And pgmhaz8 And hshaz With STATA 18
 d
-f dea.ado
-f dea.sthlp
-f coelli_table6.4.dta
+f hshaz.ado
+f hshaz.hlp
+f hshaz_ll.ado
+f pgm_ll.ado
+f pgmhaz.ado
+f pgmhaz.hlp
+f pgmhaz8.ado
+f pgmhaz8.hlp
+f pgmhaz8_ll.ado
+f pgmhaz_gf2mataview.mata
+f pgmhazgf2.ado
+f pgmhazgf2.sthlp
